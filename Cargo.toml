@@ -1,0 +1,19 @@
+[package]
+name = "ktest"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+
+[dependencies]
+kong = { path = "../kong/"}
+kong_kontrollers = { path = "../kontrollers", features = ["blog", "newsletter"]}
+serde.workspace = true
+rusqlite.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+reqwest = { version = "*", features = ["blocking", "json", "multipart", "cookies"] }
+
