@@ -3,6 +3,9 @@ use kong_kontrollers::accounts::{
     create::CreateAccountKontroller, database::Database as AccountsDB,
 };
 use kong_kontrollers::blog::{create::CreateBlogPostKontroller, database::Database as BlogsDB};
+use kong_kontrollers::contact::{
+    database::Database as ContactMessageDB, receive::ReceiveMessageKontroller,
+};
 use kong_kontrollers::login::{is_admin, LoginKontroller};
 use kong_kontrollers::newsletter::{
     database::Database as NewsletterDB, subscribe::SubscribeNewsletterKontroller,
@@ -12,6 +15,7 @@ use std::sync::{Arc, Mutex};
 const TEST_ACCOUNTS_DB: &str = "TEST_ACCOUNTS_DATABASE.sqlite";
 const TEST_BLOGS_DB: &str = "TEST_BLOGS_DATABASE.sqlite";
 const TEST_NEWSLETTER_DB: &str = "TEST_NEWSLETTER_DATABASE.sqlite";
+const TEST_CONTACT_MESSAGE_DB: &str = "TEST_CONTACT_MESSAGE_DATABASE.sqlite";
 
 fn main() {
     let accounts_database = Arc::new(Mutex::new(AccountsDB::new(TEST_ACCOUNTS_DB)));
@@ -22,6 +26,9 @@ fn main() {
 
     let newsletter_database = Arc::new(Mutex::new(NewsletterDB::new(TEST_NEWSLETTER_DB)));
     newsletter_database.lock().unwrap().connect().unwrap();
+
+    let contact_database = Arc::new(Mutex::new(ContactMessageDB::new(TEST_CONTACT_MESSAGE_DB)));
+    contact_database.lock().unwrap().connect().unwrap();
 
     kroute(vec![
         Box::new(CreateAccountKontroller {
@@ -49,6 +56,11 @@ fn main() {
             address: "/newsletter".to_string(),
             method: Method::Post,
             database: newsletter_database.clone(),
+        }),
+        Box::new(ReceiveMessageKontroller {
+            address: "/contact".to_string(),
+            method: Method::Post,
+            database: contact_database.clone(),
         }),
     ]);
 }
@@ -146,18 +158,6 @@ mod test {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    fn remove_test_dbs() {
-        let test_db_path = std::path::Path::new(TEST_ACCOUNTS_DB);
-        if std::path::Path::exists(test_db_path) {
-            std::fs::remove_file(test_db_path).unwrap();
-        }
-
-        let test_db_path = std::path::Path::new(TEST_BLOGS_DB);
-        if std::path::Path::exists(test_db_path) {
-            std::fs::remove_file(test_db_path).unwrap();
-        }
-    }
-
     #[test]
     fn test_create_blog_post() {
         remove_test_dbs();
@@ -216,5 +216,32 @@ mod test {
         let client = reqwest::blocking::Client::builder().build().unwrap();
         let res = client.post(&url).multipart(form).send().unwrap();
         assert_eq!(res.status(), StatusCode::CREATED);
+    }
+
+    #[test]
+    fn test_receive_contact_message() {
+        remove_test_dbs();
+
+        let url = format!("{ADDRESS}/contact");
+        let form = multipart::Form::new()
+            .text("name", "John")
+            .text("email", "test@example.com")
+            .text("message", "Hi there!");
+
+        let client = reqwest::blocking::Client::builder().build().unwrap();
+        let res = client.post(&url).multipart(form).send().unwrap();
+        assert_eq!(res.status(), StatusCode::CREATED);
+    }
+
+    fn remove_test_dbs() {
+        let test_db_path = std::path::Path::new(TEST_ACCOUNTS_DB);
+        if std::path::Path::exists(test_db_path) {
+            std::fs::remove_file(test_db_path).unwrap();
+        }
+
+        let test_db_path = std::path::Path::new(TEST_BLOGS_DB);
+        if std::path::Path::exists(test_db_path) {
+            std::fs::remove_file(test_db_path).unwrap();
+        }
     }
 }

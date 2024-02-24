@@ -8,7 +8,7 @@ documentation.workspace = true
 
 [dependencies]
 kong = { path = "../kong/"}
-kong_kontrollers = { path = "../kontrollers", features = ["blog", "newsletter"]}
+kong_kontrollers = { path = "../kontrollers", features = ["blog", "newsletter", "contact"]}
 serde.workspace = true
 rusqlite.workspace = true
 serde_json.workspace = true
